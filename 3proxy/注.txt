@@ -1,0 +1,2 @@
+例：
+http://127.0.0.1:9999/restMapProxy/getUrl/http://api.map.baidu.com/place/v2/search?&ak=Hg7H5dcSZXpkGcq09sk7v8b6xTk9VQGK&query=%E6%99%AF%E7%82%B9&region=%E9%95%BF%E6%98%A5&output=json&scope=1&filter=total_score&coord_type=1&page_size=20&page_num=1
