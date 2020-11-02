@@ -6,6 +6,13 @@ import router from './router'
 import VueAMap from 'vue-amap';
 Vue.config.productionTip = false
 
+import VueQuillEditor from 'vue-quill-editor'
+import 'quill/dist/quill.core.css'
+import 'quill/dist/quill.snow.css'
+import 'quill/dist/quill.bubble.css'
+  
+Vue.use(VueQuillEditor)
+
 /* eslint-disable no-new */
 Vue.use(VueAMap);
 VueAMap.initAMapApiLoader({

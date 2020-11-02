@@ -58,7 +58,8 @@
  -->
 
  <template>
-     <div class="amap-page-container" :style="{width:'100%',height:'300px'}">
+     <div class="amap-page-container" :style="{width:'100%',height:'100%'}">
+       <el-amap-search-box class="search-box" :search-option="searchOption" :on-search-result="onSearchResult"></el-amap-search-box>
        <el-amap
          vid="amapDemo"
          :center="center"
@@ -67,6 +68,7 @@
          class="amap-demo">
          <el-amap-marker v-for="marker in markers" :extData="marker" :position="marker.position" :events="marker.events"></el-amap-marker>
          <el-amap-info-window v-if="window" :position="window.position" :visible="window.visible" :template="window.content"></el-amap-info-window>
+         <el-amap-marker v-for="marker in markers2" :position="marker" ></el-amap-marker>
        </el-amap>
        <button type="button" name="button" v-on:click="addMarker">add marker</button>
        <button type="button" name="button" v-on:click="sendgetAjax">sendGet</button>
@@ -77,9 +79,13 @@
 
    <style>
      .amap-demo {
-       height: 300px;
+       height: 600px;
      }
-
+.search-box {
+      position: absolute;
+      top: 25px;
+      left: 20px;
+    }
      .prompt {
        background: white;
        width: 100px;
@@ -94,9 +100,27 @@
        data() {
          let self = this;
          return {
+           searchOption: {
+                       city: '中国',
+                       citylimit: true
+                     },
+           poem:{
+               id:"",
+               title:"那首诗",
+               author:"杜牧",
+               time:"唐朝",
+               detail:"回望长安绣成堆",
+               smx:"",
+               smy:"",
+               newAddress:"西安",
+               oldAddress:"长安",
+               addNickName:"nss"
+           },
            zoom: 9,
            center: [113, 34],
            markers: [],
+           markers2:[],
+
            windows: [],
            window: '',
            events: {
@@ -139,6 +163,35 @@
          };
        },
        methods:{
+
+                 onSearchResult(pois) {
+                   debugger
+                   let latSum = 0;
+                   let lngSum = 0;
+                   if (pois.length > 0) {
+                     pois.forEach(poi => {
+                       let {lng, lat} = poi;
+                       lngSum += lng;
+                       latSum += lat;
+                       this.markers2.push([poi.lng, poi.lat]);
+                     });
+                     let centers = {
+                       lng: lngSum / pois.length,
+                       lat: latSum / pois.length
+                     };
+                     this.center = [centers.lng, centers.lat];
+                   }
+                 },
+         senddelAjax(uri,fun){
+           this.$axios.delete(uri, {
+                     })
+                     .then(resp => {
+                       console.log(resp);
+                       fun(resp.data);
+                     }).catch(err => {
+                       console.log(err);
+                     })
+         },
          sendgetAjax(uri,fun){
            this.$axios.get(uri, {//这里将axios.get 改为this.$axios.get
                        // params:{
@@ -155,26 +208,27 @@
                      })
          },
          sendputAjax(uri,data,fun){
-           this.$axios.put(uri, {//'http://127.0.0.1:8089/v1.0/poem'
-
-                        "id":"944188077740149",
-                        "title":"changan骊山",
-                        "author":"杜牧",
-                        "time":"唐朝",
-                        "detail":"回望长安绣成堆",
-                        "smx":"113",
-                        "smy":"34",
-                        "newAddress":"xian",
-                        "oldAddress":"changan"
-
-
-                     })
+           this.$axios.put(uri, data)
                      .then(resp => {
                        console.log(resp);
                        fun(resp.data);
                      }).catch(err => {
                        console.log(err);
                      })
+                     /* {//'http://127.0.0.1:8089/v1.0/poem'
+
+                                  "id":"944188077740149",
+                                  "title":"changan骊山",
+                                  "author":"杜牧",
+                                  "time":"唐朝",
+                                  "detail":"回望长安绣成堆",
+                                  "smx":"113",
+                                  "smy":"34",
+                                  "newAddress":"xian",
+                                  "oldAddress":"changan"
+
+
+                               } */
          },
          addMarker(){
            let marker = {
@@ -196,7 +250,9 @@
              events: {
                click() {
                  let add = that.getAddress(lng,lat,function(add){
-                   that.addwindow(lng,lat,add);
+                   let poemdata = {id:null,
+                   newAddress:add}
+                   that.addwindow(lng,lat,poemdata);
                    for(let i = 0;i<that.windows.length;i++){
                      that.windows.forEach(window => {
                                         window.visible = false;
@@ -216,15 +272,27 @@
            }
            this.markers.push(marker);
          },
-         addwindow(lng,lat,add){
+         addwindow(lng,lat,data){
            let that = this;
            that.windows = [];
-           let a = "aa"
-           that.windows.push({
-             position: [lng,lat],
-             content: `<div ref="`+a+`" id="`+a+`" class="prompt" style="height:250px;width:200px">`+lng +`,`+lat+`,`+add+`<input type="text"/><input type="text"/><textarea></textarea><button @click="btnck('`+a+`')">保存</button></div>`,
-             visible: true
-           });
+           let a = new Date().getTime()
+           //alert(data.id)
+           if(data.id === null){
+             that.windows.push({
+               position: [lng,lat],
+               //content: `<div ref="`+data.id+`" id="`+data.id+`" class="prompt" style="height:250px;width:200px">`+lng +`,`+lat+`<input type="text" value="`+data.id+`"/><br/><input type="text" class = "title" value="`+data.title+`"/><br /><input type="text" class = "author" value="`+data.author+`"/><br /><input type="text" class = "time" value="`+data.time+`"/><br /><textarea type="text" class = "detail">`+data.detail+`</textarea><br /><textarea type="text" class = "introduce">`+data.introduce+`</textarea><br /><input type="text" class = "oldAddress" value="`+data.oldAddress+`"/><br /><input type="text" class = "newAddress" value="`+data.newAddress+`"/><br /><input type="text" class = "addNickName" value="`+data.addNickName+`"/><button @click="btnck('`+a+`')">保存</button></div>`,
+               content: `<div ref="`+a+`" id="`+a+`" class="prompt" style="height:300px;width:200px">`+lng +`,`+lat+`<input type="text" v-model="poem.id" value=""/><br/><input type="text" class = "title" v-model="poem.title"/><br /><input type="text" v-model="poem.author" class = "author" /><br /><input type="text" v-model="poem.time" class = "time"/><br /><textarea type="text" v-model="poem.detail" class = "detail"></textarea><br /><textarea type="text" v-model="poem.introduce" class = "introduce"></textarea><br /><input type="text" v-model="poem.oldAddress" class = "oldAddress" /><br /><input type="text" value="`+data.newAddress+`" class = "newAddress" /><br /><input type="text" class = "addNickName" v-model="poem.addNickName" value=""/><button @click="btnck('`+a+`')">保存</button></div>`,
+               visible: true
+             });
+
+           }else{
+             that.windows.push({
+               position: [lng,lat],
+               content: `<div ref="`+data.id+`" id="`+data.id+`" class="prompt" style="height:300px;width:200px">`+lng +`,`+lat+`<input type="text" value="`+data.id+`"/><br/><input type="text" class = "title" value="`+data.title+`"/><br /><input type="text" class = "author" value="`+data.author+`"/><br /><input type="text" class = "time" value="`+data.time+`"/><br /><textarea type="text" class = "detail">`+data.detail+`</textarea><br /><textarea type="text" class = "introduce">`+data.introduce+`</textarea><br /><input type="text" class = "oldAddress" value="`+data.oldAddress+`"/><br /><input type="text" class = "newAddress" value="`+data.newAddress+`"/><br /><input type="text" class = "addNickName" value="`+data.addNickName+`"/><button @click="btnck('`+data.id+`')">保存</button><button @click="btndel('`+data.id+`')">删除</button></div>`,
+               visible: true
+             });
+           }
+
          },
 
          getAddress(lng,lat,fun){
@@ -249,21 +317,69 @@
            return address;
          },
          //window中button按钮
-         btnck(msg){
-           console.log(this.$refs[msg]);
-           //保存数据
-           
+         btndel(id){
+           let that = this;
+           that.senddelAjax("http://127.0.0.1:8089/v1.0/poem/"+id,function(ret){
+             console.log(ret)
+             location.reload();
+             that.markers.forEach(function(m){
+
+               console.log(m)
+               if(m.data.id==id){
+                 alert(m.data);
+               }
+             })
+           })
          },
-         addMarkers(lng,lat,address){
+         btnck(msg){
+           let that = this;
+           let smx = this.$refs[msg].childNodes[0].data.split(",")[0];
+           let smy = this.$refs[msg].childNodes[0].data.split(",")[1];
+           let id = this.$refs[msg].childNodes[1].value;
+           if(id==""){
+             id=null
+           }
+           let title = this.$refs[msg].childNodes[3].value;
+           let author = this.$refs[msg].childNodes[5].value;
+           let time = this.$refs[msg].childNodes[7].value;
+           let detail = this.$refs[msg].childNodes[9].value;
+           let introduce = this.$refs[msg].childNodes[11].value;
+           let newAddress = this.$refs[msg].childNodes[13].value;
+           let oldAddress = this.$refs[msg].childNodes[15].value;
+           let addNickName = this.$refs[msg].childNodes[17].value;
+           let poemData={
+               id:id,
+               title:title,
+               author:author,
+               time:time,
+               detail:detail,
+               smx:smx,
+               smy:smy,
+               introduce:introduce,
+               newAddress:newAddress,
+               oldAddress:oldAddress,
+               addNickName:addNickName
+           }
+           that.sendputAjax("http://127.0.0.1:8089/v1.0/poem",poemData,function(ret){
+             console.log(ret)
+              location.reload();
+           })
+           console.log(this.$refs[msg].childNodes[11].value);
+
+
+           //保存数据
+
+         },
+         addMarkers(lng,lat,data){
            let that = this;
            that.windows = []
            let marker = {
              position: [lng, lat],
-             data:address,
+             data:data,
              events: {
                click(e) {
 
-                 console.log(e.target.getExtData())
+                 //console.log(e.target.getExtData())
                  let datas = e.target.getExtData();
                   let add = that.getAddress(lng,lat,function(add){
                    that.addwindow(datas.position[0],datas.position[1],datas.data);
@@ -296,7 +412,7 @@
          self.sendgetAjax("http://127.0.0.1:8089/v1.0/poem/all",function(data){
            data.data.forEach(function(d){
              if(d.smx != null){
-               self.addMarkers(d.smx,d.smy,d.oldAddress);
+               self.addMarkers(d.smx,d.smy,d);
              }
 
 
